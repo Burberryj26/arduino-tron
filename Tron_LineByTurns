@@ -1,0 +1,257 @@
+/* 
+  This version is intended for the Arduino Uno, but can qucikly be adapted for nearly any arduino device
+  */
+  
+  #include <SPI.h>
+  #include <Adafruit_GFX.h>
+  #include <Adafruit_ST7789.h>
+  
+  struct Point {
+  int xPoint;
+  int yPoint;
+  int turnNumber;
+  struct Point *turn;
+  };
+
+  //Player one values
+  int direction1 = 1;
+  struct Point start = {20, 10, 1, NULL};
+  struct Point bike1 = {20, 10, 1, &start};
+  boolean pressed1 = LOW;
+  #define right1 2
+  #define left1 3
+  int arrayPosition1 = 0;
+  int score1 = 0;
+
+  // //Player two values
+  // int direction2 = 3;
+  // Point bike2 = {290, 120};
+  // boolean pressed2 = LOW;
+  // #define right2 5
+  // #define left2 4
+  // int arrayPosition2 = 0;
+  // int score2 = 0;
+  
+  //Display Pins
+  #define TFT_SCK 13
+  #define TFT_MOSI 11
+  #define TFT_CS 10
+  #define TFT_RST 9
+  #define TFT_DC 8
+
+  Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+
+void setup() {
+
+  Serial.begin(9600);
+
+  pinMode(right1, INPUT_PULLUP);
+  pinMode(left1, INPUT_PULLUP);
+  // pinMode(right2, INPUT_PULLUP);
+  // pinMode(left2, INPUT_PULLUP);
+    
+  tft.init(240, 320);
+  tft.setRotation(1);
+  tft.fillScreen(tft.color565(0, 0, 0));
+
+}
+
+void loop() {
+
+  //directionChange(right1, left1, pressed1, direction1);
+
+  if (digitalRead(right1) == LOW && pressed1 == LOW) {
+    if (direction1 == 3) {
+      direction1 = 0;
+    } else {
+      direction1++;
+    }
+    pressed1 = HIGH;
+    struct Point lastTurn = bike1;
+  
+    Serial.print("Coordinates of last turn: ");
+    Serial.print(lastTurn.xPoint);
+    Serial.print(", ");
+    Serial.print(lastTurn.yPoint);
+    delay(4000);
+    Serial.print("       ");
+
+    bike1.turn = &lastTurn;
+
+    Serial.print("Coordinates of last turn accessed from turn pointer: ");
+    Serial.print(bike1.turn->xPoint);
+    Serial.print(", ");
+    Serial.print(bike1.turn->yPoint);
+    delay(4000);
+
+    bike1.turn->turn->xPoint = 9;
+    bike1.turn->turn->yPoint = 99;
+
+    Serial.print("      ");
+    Serial.print("Coordinates of last turn accessed from turn pointer: ");
+    Serial.print(bike1.turn->xPoint);
+    Serial.print(", ");
+    Serial.println(bike1.turn->yPoint);
+    delay(4000);
+  }
+    
+  if (digitalRead(left1) == LOW && pressed1 == LOW) {
+    if (direction1 == 0) {
+      direction1 = 3;
+    } else {
+      direction1--;
+    }
+    pressed1 = HIGH;
+    struct Point lastTurn = bike1;
+
+    Serial.print("Coordinates of last turn: ");
+    Serial.print(lastTurn.xPoint);
+    Serial.print(", ");
+    Serial.print(lastTurn.yPoint);
+    delay(4000);
+    Serial.print("      ");
+
+    bike1.turn = &lastTurn;
+
+    Serial.print("Coordinates of last turn accessed from turn pointer: ");
+    Serial.print(bike1.turn->xPoint);
+    Serial.print(", ");
+    Serial.print(bike1.turn->yPoint);
+    delay(4000);
+
+    bike1.turn->turn->xPoint = 9;
+    bike1.turn->turn->yPoint = 99;
+
+    Serial.print("      ");
+    Serial.print("Coordinates of last turn accessed from turn pointer: ");
+    Serial.print(bike1.turn->xPoint);
+    Serial.print(", ");
+    Serial.println(bike1.turn->yPoint);
+    delay(4000);
+  }
+      
+  if (digitalRead(right1) == HIGH && digitalRead(left1) == HIGH && pressed1 == HIGH){
+    pressed1 = LOW;
+  }
+
+  //Calculates the bikes new location based on
+  //It's direction
+  
+  if (direction1 == 0) {
+    bike1.yPoint = bike1.yPoint - 1;
+  } else if (direction1 == 1) {
+    bike1.xPoint = bike1.xPoint + 1;
+  } else if (direction1 == 2) {
+    bike1.yPoint = bike1.yPoint + 1;
+  } else if (direction1 == 3) {
+    bike1.xPoint = bike1.xPoint - 1;
+  }
+
+
+  //Serial.println(bike1.turn->turnNumber);
+
+  Serial.print("Current bike coordinates: ");
+  Serial.print(bike1.xPoint);
+  Serial.print(", ");
+  Serial.print(bike1.yPoint);
+
+
+  Serial.print("        ");
+  Serial.print("Last turn coordinates: ");
+  Serial.print(bike1.turn->xPoint);
+  Serial.print(", ");
+  Serial.print(bike1.turn->yPoint);
+
+  Serial.print("        ");
+  Serial.print("2nd last turn coordinates: ");
+  Serial.print(bike1.turn->turn->xPoint);
+  Serial.print(", ");
+  Serial.println(bike1.turn->turn->yPoint);
+
+
+  tft.drawChar(100, 10, bike1.turn->yPoint, tft.color565(255, 0, 0), 10, 5);
+  tft.drawPixel(bike1.xPoint, bike1.yPoint, tft.color565(14, 248, 248));
+
+
+  // This section checks for interference
+  // It iterates through each turning point till the last point
+  // If the bike's current position is on any line between a turn and the previous turn, then there's is interference
+  // If there is then reset the game and add one to opponenents score
+
+  // struct Point *current = bike1.turn;
+  // bike1.turn = current;
+  // struct Point *next = (current->turn);
+
+  // ***** The game wasn't ending and the screen wasn't turning all white when i hit my wall. Will investigate once I can get screen to read off the x/y position of the last turn
+  // while (next->turn != NULL) {
+  //   if (current->xPoint == next->xPoint) {
+  //     if (bike1.xPoint == current->xPoint) {
+  //       if (current->yPoint > next->yPoint) {
+  //         if (bike1.yPoint >= next->yPoint && bike1.yPoint <= current->yPoint) {
+  //           tft.fillScreen(tft.color565(0, 0, 0));
+  //           delay(2000);
+  //         }
+  //       } else {
+  //         if (bike1.yPoint >= current->yPoint && bike1.yPoint <= next->yPoint) {
+  //           tft.fillScreen(tft.color565(0, 0, 0));
+  //           delay(2000);
+  //         }
+  //       }
+  //     }
+  //   } else if (current->yPoint == next->yPoint) {
+  //     if (bike1.yPoint == current->yPoint) {
+  //       if (current->xPoint > next->xPoint) {
+  //         if (bike1.xPoint >= next->xPoint && bike1.xPoint <= current->xPoint) {
+  //           tft.fillScreen(tft.color565(0, 0, 0));
+  //           delay(2000);
+  //         }
+  //       } else {
+  //         if (bike1.xPoint >= current->xPoint && bike1.xPoint <= next->xPoint) {
+  //           tft.fillScreen(tft.color565(0, 0, 0));
+  //           delay(2000);
+  //         }
+  //       }
+  //     }
+  //   } else {
+  //     current = next;
+  //     next = current->turn;
+  //   }
+  // }
+
+  
+  //tft.drawChar(0, 0, 1, tft.color565(255, 255, 255), 0, 2);
+
+  delay(5000);
+}
+
+
+// ***** The direction change wasn't working when it was in a method like this. Will investigate once I get tron to work
+// void directionChange(int rightButton, int leftButton, boolean pressed, int direction) {
+  
+//   if (digitalRead(rightButton) == LOW && pressed == LOW) {
+//     if (direction == 3) {
+//         direction = 0;
+//     } else {
+//         direction++;
+//     }
+    
+//     pressed = HIGH;
+//   }
+  
+//   if (digitalRead(leftButton) == LOW && pressed == LOW) {
+//     if (direction == 0) {
+//       direction = 3;
+//     } else {
+//         direction--;
+//     }
+    
+//       pressed = HIGH;
+//     }
+    
+//   if (digitalRead(rightButton) == HIGH && digitalRead(leftButton) == HIGH && pressed == HIGH){
+//     pressed = LOW;
+//   }
+
+//   struct Point lastTurn = bike1;
+//   bike1.turn = &lastTurn;
+// }
